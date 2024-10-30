@@ -7,11 +7,6 @@ from Users import users
 app=FastAPI()
 
 
-# users={
-#     "universal":{"username":"universal", "email":"horaciomolinab0@gmail.com", "password":"password"}
-# }
-
-
 
 @app.post("/token")
 def login(form_data: Annotated[OAuth2PasswordRequestForm,Depends()]):
