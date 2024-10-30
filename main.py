@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 # from fastapi.exceptions import HTTPException
 
-from Utils import encode_token,decode_token,authenticate_user, create_access_token,get_current_active_user
+from utils import encode_token,decode_token,authenticate_user, create_access_token,get_current_active_user
 from Users import users, fake_users_db
 from Models import Token, User
 
