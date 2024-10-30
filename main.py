@@ -2,13 +2,14 @@ from typing import Annotated
 from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.exceptions import HTTPException
-from utils import encode_token,decode_token
+from Utils import encode_token,decode_token
+from Users import users
 app=FastAPI()
 
 
-users={
-    "universal":{"username":"universal", "email":"horaciomolinab0@gmail.com", "password":"password"}
-}
+# users={
+#     "universal":{"username":"universal", "email":"horaciomolinab0@gmail.com", "password":"password"}
+# }
 
 
 
