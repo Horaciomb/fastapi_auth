@@ -14,7 +14,7 @@ def encode_token(payload:dict) -> str:
     return token
 
 def decode_token(token:Annotated[str,Depends(oauth2_scheme)]) -> dict:
-    data= jwt.decode(token,secret_key,algorithm=["HS256"])
+    data= jwt.decode(token,secret_key,algorithms=["HS256"])
     user = users.get(data["username"])
     return user
     
