@@ -1,5 +1,21 @@
 from pydantic import BaseModel
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    firstName: str
+    lastName: str
+    token: str
+class UserOut(BaseModel):
+    id: int
+    username: str
+    firstName: str
+    lastName: str
+    email: str
+
+class LoginData(BaseModel):
+    username: str
+    password: str
 
 class User(BaseModel):
     username: str

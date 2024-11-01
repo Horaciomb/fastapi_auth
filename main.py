@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import List, Annotated
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends , HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from utils import encode_token,decode_token,authenticate_user, create_access_token,get_current_active_user
 from Users import users, fake_users_db
-from Models import Token, User
+from Models import Token, User, UserResponse, UserOut, LoginData
 
 app=FastAPI()
 load_dotenv() 
@@ -26,15 +26,31 @@ app.add_middleware(
 def hello():
     return {"hello": "world"}
 
-@app.post("/users/authenticate")
-def login(form_data: Annotated[OAuth2PasswordRequestForm,Depends()]):
-    user = users.get(form_data.username)
+@app.post("/users/authenticate", response_model=UserResponse)
+def login(login_data: LoginData):
+    user = users.get(login_data.username)
     
-    if not user or form_data.password != user["password"]:
+    if not user or login_data.password != user["password"]:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
-    token = encode_token({"username":user["username"], "email":user["email"]})
-    return {"token":token}
+    token = encode_token({"username": user["username"], "email": user["email"]})
+    
+    return UserResponse(
+        id=user["id"],
+        username=user["username"],
+        firstName=user["firstName"],
+        lastName=user["lastName"],
+        token=token
+    )
+
+
+@app.get("/users", response_model=List[UserOut])
+def get_all_users():
+    # Excluye el campo `password` y devuelve la lista de usuarios en formato UserOut
+    return [
+        UserOut(**{k: v for k, v in user.items() if k != "password"})
+        for user in users.values()
+    ]
 
 @app.get("/users/profile")
 def profile(my_user:Annotated[dict, Depends(decode_token)]):

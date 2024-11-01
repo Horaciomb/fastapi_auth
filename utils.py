@@ -10,6 +10,7 @@ from jose import jwt
 from Users import users , fake_users_db
 from Models import UserInDB, TokenData, User
 from jwt.exceptions import InvalidTokenError
+import time
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="token")
@@ -18,8 +19,14 @@ load_dotenv()
 secret_key = os.getenv("SECRET_KEY")
 algoritmo = os.getenv("ALGORITHM")
 
-def encode_token(payload:dict) -> str:
-    token=jwt.encode(payload,secret_key, algorithm="HS256")
+def encode_token(data: dict):
+    payload = {
+        "sub": data["username"],
+        "iat": time.time(),
+        "exp": time.time() + 3600,  # Token válido por 1 hora
+        "data": data
+    }
+    token = jwt.encode(payload, "secret_key", algorithm="HS256")
     return token
 
 def decode_token(token:Annotated[str,Depends(oauth2_scheme)]) -> dict:
