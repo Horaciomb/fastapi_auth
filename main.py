@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends , HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 import os 
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 # from fastapi.exceptions import HTTPException
 
 from utils import encode_token,decode_token,authenticate_user, create_access_token,get_current_active_user
@@ -13,9 +14,19 @@ from Models import Token, User
 app=FastAPI()
 load_dotenv() 
 access_token_expire_minutes = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
+@app.get("/")
+def hello():
+    return {"hello": "world"}
 
-@app.post("/token")
+@app.post("/users/authenticate")
 def login(form_data: Annotated[OAuth2PasswordRequestForm,Depends()]):
     user = users.get(form_data.username)
     
@@ -23,7 +34,7 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm,Depends()]):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
     token = encode_token({"username":user["username"], "email":user["email"]})
-    return {"access_token":token}
+    return {"token":token}
 
 @app.get("/users/profile")
 def profile(my_user:Annotated[dict, Depends(decode_token)]):
@@ -45,7 +56,7 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(token=access_token, token_type="bearer")
 
 @app.get("/users/me/", response_model=User)
 async def read_users_me(
