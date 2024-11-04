@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 # from fastapi.exceptions import HTTPException
 
-from utils import encode_token,decode_token,authenticate_user, create_access_token,get_current_active_user
+from utils import encode_token,decode_token,Get_current_active_user,authenticate_user, create_access_token,get_current_active_user
 from Users import users, fake_users_db
 from Models import Token, User, UserResponse, UserOut, LoginData
 
@@ -45,7 +45,7 @@ def login(login_data: LoginData):
 
 
 @app.get("/users", response_model=List[UserOut])
-def get_all_users():
+def get_all_users(current_user: Annotated[dict, Depends(Get_current_active_user)]):
     # Excluye el campo `password` y devuelve la lista de usuarios en formato UserOut
     return [
         UserOut(**{k: v for k, v in user.items() if k != "password"})
@@ -53,8 +53,8 @@ def get_all_users():
     ]
 
 @app.get("/users/profile")
-def profile(my_user:Annotated[dict, Depends(decode_token)]):
-    return my_user
+def profile(current_user: Annotated[dict, Depends(Get_current_active_user)]):
+    return current_user
 
 
 @app.post("/token2")

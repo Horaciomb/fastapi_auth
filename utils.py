@@ -6,7 +6,7 @@ from fastapi import  HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Annotated
 from fastapi import  Depends
-from jose import jwt
+from jose import jwt, JWTError
 from Users import users , fake_users_db
 from Models import UserInDB, TokenData, User
 from jwt.exceptions import InvalidTokenError
@@ -16,8 +16,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="token")
 
 load_dotenv() 
-secret_key = os.getenv("SECRET_KEY")
-algoritmo = os.getenv("ALGORITHM")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
 def encode_token(data: dict):
     payload = {
@@ -26,14 +27,38 @@ def encode_token(data: dict):
         "exp": time.time() + 3600,  # Token válido por 1 hora
         "data": data
     }
-    token = jwt.encode(payload, "secret_key", algorithm="HS256")
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
-def decode_token(token:Annotated[str,Depends(oauth2_scheme)]) -> dict:
-    data= jwt.decode(token,secret_key,algorithms=["HS256"])
-    user = users.get(data["username"])
-    return user
+# def decode_token(token:Annotated[str,Depends(oauth2_scheme)]) -> dict:
+#     data= jwt.decode(token,secret_key,algorithms=[algoritmo])
+#     user = users.get(data["username"])
+#     return user
+def decode_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        return payload["data"]
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired or is invalid"
+        )
 
+def Get_current_active_user(token: str = Depends(oauth2_scheme)) -> dict:
+    user_data = decode_token(token)
+    user = users.get(user_data["username"])
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user"
+        )
+    return user
 # Nuevas funciones
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -64,7 +89,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algoritmo)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
@@ -74,7 +99,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, secret_key, algorithms=[algoritmo])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
